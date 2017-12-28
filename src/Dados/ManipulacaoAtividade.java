@@ -69,31 +69,25 @@ public class ManipulacaoAtividade {
      *
      */
     private boolean atividadeRepasseEntedimento(RegistroAtividade atividade) {
-        if(atividade.getAtividade().getNomeAtividade().toLowerCase().contains("entendimento") && !atividade.getDemanda().equals("[Sem Demanda]"))
-            return true;
-        return false;
+        return (atividade.getAtividade().getNomeAtividade().toLowerCase().contains("entendimento") && !atividade.getDemanda().equals("[Sem Demanda]"));
     }
 
     /**
      * Método para identificar se a atividade é produtiva; categoria deve ser diferente de 'Outros'.
      */
     private boolean atividadeProdutiva(RegistroAtividade atividade){
-        if(!atividade.getAtividade().getCategoria().equals("Outros"))
-            return true;
-
-        return false;
+        return (!atividade.getAtividade().getCategoria().equals("Outros"));
     }
 
     /**
      * Método para verificar se duas atividades pertencem à mesma demanda, de um mesmo sistema.
      */
     private boolean mesmaDemanda(ArrayList<RegistroAtividade> atividades, int i, int j) {
-        if(atividades.get(i).getSistema().equals(atividades.get(j).getSistema()) && atividades.get(i).getDemanda().equals(atividades.get(j).getDemanda()))
-            return true;
-        return false;
+        return(atividades.get(i).getSistema().equals(atividades.get(j).getSistema()) && atividades.get(i).getDemanda().equals(atividades.get(j).getDemanda()));
+
     }
 
-    /**
+    /*
      * Método para teste da lista.
      *
     private void imprimeLista(ArrayList<RegistroAtividade> atividades) {
