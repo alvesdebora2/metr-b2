@@ -8,6 +8,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 
+import javax.swing.filechooser.FileSystemView;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -19,28 +20,33 @@ import java.util.Iterator;
 public class ManipulacaoArquivo {
 
 
+    /**
+     * Realiza ações de leitura, tratamento dos dados e escrita em arquivo.
+     */
     public void trataDados(String filePath) {
         ArrayList<RegistroAtividade> atividades;
         ManipulacaoAtividade manipulacaoAtividade = new ManipulacaoAtividade();
 
         atividades = leArquivo(filePath);
-        atividades = manipulacaoAtividade.unificaAtividades(atividades);
-        atividades = manipulacaoAtividade.repassaHorasEntendimentoEspecificacao(atividades);
+        atividades = manipulacaoAtividade.repassaHorasEntendimento(manipulacaoAtividade.unificaAtividades(atividades));
         criaPlanilhaSaida(atividades);
 
     }
 
+    /**
+     * Lê arquivo xls e insere registros em um ArrayList.
+     */
     private ArrayList<RegistroAtividade> leArquivo(String filePath) {
         ArrayList<RegistroAtividade> atividadesLidas = new ArrayList<>();
 
         // Abrindo o arquivo e recuperando a planilha
-        FileInputStream file = null;
+        FileInputStream file;
         try {
             file = new FileInputStream(new File(filePath));
             HSSFWorkbook workbook = new HSSFWorkbook(file);
             HSSFSheet sheet = workbook.getSheetAt(0);
             DataFormatter objDefaultFormat = new DataFormatter();
-            FormulaEvaluator objFormulaEvaluator = new HSSFFormulaEvaluator((HSSFWorkbook) workbook);
+            FormulaEvaluator objFormulaEvaluator = new HSSFFormulaEvaluator(workbook);
             Iterator<Row> rowIterator = sheet.iterator();
             Row row;
             String tRetestes, tBugs, tProducao;
@@ -50,39 +56,51 @@ public class ManipulacaoArquivo {
                 row = rowIterator.next();
 
                 // Identifica id das colunas.
-                // Apenas Produção e Atividade que não são identificadas aqui;
+                // Apenas Produção e Atividade que não são identificadas aqui.
                 //  - Produção: existem três colunas de produção no arquivo de entrada, então o id da que deve ser utilizado foi fixado.
-                //  - Atividade: o texto é
+                //  - Atividade: o texto é identificado de acordo com a categoria: Especificação, Execução , Entendimento ou Outros.
                 if(row.getRowNum() == 0){
                     Iterator<Cell> cellIterator = row.cellIterator();
                     Cell cell;
                     while(cellIterator.hasNext()){
                         cell = cellIterator.next();
                         cell.setCellType(CellType.STRING);
-                        if(cell.getStringCellValue().toLowerCase().equals("period"))
-                            idPeriodo = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("identificador da demanda no cliente"))
-                            idDemanda = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("sistema"))
-                            idSistema = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("full name"))
-                            idAnalista = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("hours"))
-                            idHora = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("número de retestes"))
-                            idReteste = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("número de bugs"))
-                            idBugs = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("issue key"))
-                            idIssueKey = cell.getColumnIndex();
-                        else if(cell.getStringCellValue().toLowerCase().equals("issue type"))
-                            idIssueType = cell.getColumnIndex();
+                        switch(cell.getStringCellValue().toLowerCase()) {
+                            case "period":
+                                idPeriodo = cell.getColumnIndex();
+                                break;
+                            case "identificador da demanda no cliente":
+                                idDemanda = cell.getColumnIndex();
+                                break;
+                            case "sistema":
+                                idSistema = cell.getColumnIndex();
+                                break;
+                            case "full name":
+                                idAnalista = cell.getColumnIndex();
+                                break;
+                            case "hours":
+                                idHora = cell.getColumnIndex();
+                                break;
+                            case "número de retestes":
+                                idReteste = cell.getColumnIndex();
+                                break;
+                            case "número de bugs":
+                                idBugs = cell.getColumnIndex();
+                                break;
+                            case "issue key":
+                                idIssueKey = cell.getColumnIndex();
+                                break;
+                            case "issue type":
+                                idIssueType = cell.getColumnIndex();
+                                break;
+                        }
                     }
                     continue;
                 }
 
-                // Pega dados das colunas de uma linha específica.
                 RegistroAtividade registroAtividade = new RegistroAtividade();
+
+                // Pega dados das colunas da linha atual.
                 registroAtividade.setMesPeriodo(row.getCell(idPeriodo).getStringCellValue().substring(0,2));
                 registroAtividade.setAnoPeriodo(row.getCell(idPeriodo).getStringCellValue().substring(2, 4));
                 registroAtividade.setDemanda(row.getCell(idDemanda).getStringCellValue());
@@ -110,7 +128,7 @@ public class ManipulacaoArquivo {
             file.close();
             workbook.close();
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("Arquivo não encontrado.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -118,15 +136,21 @@ public class ManipulacaoArquivo {
         return atividadesLidas;
     }
 
+    /**
+     * Cria xls utilizando ArrayList de 'RegistroAtividade' como entrada.
+     */
     private void criaPlanilhaSaida(ArrayList<RegistroAtividade> atividades) {
         HSSFWorkbook workbook = new HSSFWorkbook();
         HSSFSheet firstSheet = workbook.createSheet("Aba1");
+        FileSystemView system = FileSystemView.getFileSystemView();
 
         FileOutputStream fos = null;
 
         try {
-            fos = new FileOutputStream(new File("planilha-metricas.xls"));
+            // Salva arquivo no desktop.
+            fos = new FileOutputStream(new File(system.getHomeDirectory().getPath() + File.separator + "planilha-metricas.xls"));
 
+            // Definição da linha de cabeçalho.
             HSSFRow primeiraLinha = firstSheet.createRow(0);
             primeiraLinha.createCell(0).setCellValue("Período (mm/aaaa)");
             primeiraLinha.createCell(1).setCellValue("Demanda");
@@ -139,6 +163,7 @@ public class ManipulacaoArquivo {
             primeiraLinha.createCell(8).setCellValue("Produção Realizada");
             primeiraLinha.createCell(9).setCellValue("Issue");
 
+            // Linhas de conteúdo.
             for (int i = 1; i <= atividades.size(); i++) {
                 HSSFRow linha = firstSheet.createRow(i);
 
@@ -159,27 +184,33 @@ public class ManipulacaoArquivo {
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Erro ao exportar arquivo");
+            System.out.println("Erro ao exportar arquivo.");
         } finally {
             try {
-                fos.flush();
-                fos.close();
+                if (fos != null) {
+                    fos.flush();
+                    fos.close();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
+    /**
+     * Verifica qual coluna deve ser lida de acordo com a categoria de atividade:
+     * Especificação, Execução, Automação ou Outros.
+     */
     private Atividade identificaTipoAtividade(Row linha, int issueType){
         Atividade atividade = new Atividade();
 
-        if(linha.getCell(issueType).getStringCellValue().toLowerCase().contains("execução")) {
-            atividade.setNomeAtividade(linha.getCell(44).getStringCellValue());
-            atividade.setCategoria("Execução");
-        }
-        else if(linha.getCell(issueType).getStringCellValue().toLowerCase().contains("especificação")) {
+        if(linha.getCell(issueType).getStringCellValue().toLowerCase().contains("especificação")) {
             atividade.setNomeAtividade(linha.getCell(54).getStringCellValue());
             atividade.setCategoria("Especificação");
+        }
+        else if(linha.getCell(issueType).getStringCellValue().toLowerCase().contains("execução")) {
+            atividade.setNomeAtividade(linha.getCell(44).getStringCellValue());
+            atividade.setCategoria("Execução");
         }
         else if(linha.getCell(issueType).getStringCellValue().toLowerCase().contains("automação")) {
             atividade.setNomeAtividade(linha.getCell(55).getStringCellValue());
@@ -193,8 +224,11 @@ public class ManipulacaoArquivo {
         return atividade;
     }
 
+    /**
+     * Transforma String em inteiro; se string for vazia, retorna zero.
+     */
     private int verificaInteiro(String str) {
-        double numero = 0;
+        double numero;
 
         if(str.isEmpty())
             return 0;
