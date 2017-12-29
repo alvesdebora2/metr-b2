@@ -50,7 +50,7 @@ public class ManipulacaoArquivo {
             Iterator<Row> rowIterator = sheet.iterator();
             Row row;
             String tRetestes, tBugs, tProducao;
-            int idPeriodo = 0, idDemanda = 0, idSistema = 0, idAnalista = 0, idHora = 0, idReteste = 0, idBugs = 0, idIssueKey = 0, idIssueType = 0;
+            int idPeriodo = 0, idDemanda = 0, idSistema = 0, idAnalista = 0, idHora = 0, idReteste = 0, idBugs = 0, idIssueKey = 0, idIssueType = 0, idNomeProjeto = 0;
 
             while (rowIterator.hasNext()) {
                 row = rowIterator.next();
@@ -93,6 +93,9 @@ public class ManipulacaoArquivo {
                             case "issue type":
                                 idIssueType = cell.getColumnIndex();
                                 break;
+                            case "project name":
+                                idNomeProjeto = cell.getColumnIndex();
+                                break;
                         }
                     }
                     continue;
@@ -122,6 +125,7 @@ public class ManipulacaoArquivo {
                 registroAtividade.setProducaoRealizada(verificaInteiro(tProducao));
 
                 registroAtividade.setIssueKey(row.getCell(idIssueKey).getStringCellValue());
+                registroAtividade.setNomeProjeto(row.getCell(idNomeProjeto).getStringCellValue());
 
                 atividadesLidas.add(registroAtividade);
             }
@@ -143,12 +147,16 @@ public class ManipulacaoArquivo {
         HSSFWorkbook workbook = new HSSFWorkbook();
         HSSFSheet firstSheet = workbook.createSheet("Aba1");
         FileSystemView system = FileSystemView.getFileSystemView();
+        String nomeProjeto, periodo;
 
         FileOutputStream fos = null;
 
         try {
+            nomeProjeto = atividades.get(0).getNomeProjeto();
+            periodo = atividades.get(0).getMesPeriodo() + atividades.get(0).getAnoPeriodo();
+
             // Salva arquivo no desktop.
-            fos = new FileOutputStream(new File(system.getHomeDirectory().getPath() + File.separator + "planilha-metricas.xls"));
+            fos = new FileOutputStream(new File(system.getHomeDirectory().getPath() + File.separator + "Metricas-" + nomeProjeto + "-" + periodo + ".xls"));
 
             // Definição da linha de cabeçalho.
             HSSFRow primeiraLinha = firstSheet.createRow(0);

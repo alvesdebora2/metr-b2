@@ -1,5 +1,6 @@
 package Atividade;
 
+import java.text.DecimalFormat;
 import java.util.Date;
 
 /**
@@ -7,7 +8,7 @@ import java.util.Date;
  */
 public class RegistroAtividade {
     private Atividade atividade;
-    private String issueKey, mesPeriodo, anoPeriodo, demanda, sistema, analista;
+    private String issueKey, mesPeriodo, anoPeriodo, demanda, sistema, analista, nomeProjeto;
     private double horas;
     private int numReteste, numBugs, producaoRealizada;
 
@@ -76,7 +77,9 @@ public class RegistroAtividade {
     }
 
     public void setHoras(double horas) {
-        this.horas = horas;
+        DecimalFormat df = new DecimalFormat("#.00");
+
+        this.horas = Double.parseDouble(df.format(horas).replace(",", "."));
     }
 
     public String getAnalista() {
@@ -109,6 +112,14 @@ public class RegistroAtividade {
 
     public void setProducaoRealizada(int producaoRealizada) {
         this.producaoRealizada = producaoRealizada;
+    }
+
+    public String getNomeProjeto() {
+        return nomeProjeto;
+    }
+
+    public void setNomeProjeto(String nomeProjeto) {
+        this.nomeProjeto = nomeProjeto;
     }
 }
 
