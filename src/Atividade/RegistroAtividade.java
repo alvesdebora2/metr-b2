@@ -1,7 +1,6 @@
 package Atividade;
 
 import java.text.DecimalFormat;
-import java.util.Date;
 
 /**
  * Created by Débora on 27/12/2017.
@@ -11,6 +10,7 @@ public class RegistroAtividade {
     private String issueKey, mesPeriodo, anoPeriodo, demanda, sistema, analista, nomeProjeto;
     private double horas;
     private int numReteste, numBugs, producaoRealizada;
+    private boolean fechada;
 
     public RegistroAtividade() {
         atividade = new Atividade();
@@ -120,6 +120,14 @@ public class RegistroAtividade {
 
     public void setNomeProjeto(String nomeProjeto) {
         this.nomeProjeto = nomeProjeto;
+    }
+
+    public boolean isFechada() {
+        return fechada;
+    }
+
+    public void setFechada(String status) {
+        this.fechada = status.toLowerCase().equals("closed");
     }
 }
 

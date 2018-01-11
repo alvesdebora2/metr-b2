@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.*;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -24,13 +25,17 @@ public class ManipulacaoArquivo {
      * Realiza ações de leitura, tratamento dos dados e escrita em arquivo.
      */
     public void trataDados(String filePath) {
-        ArrayList<RegistroAtividade> atividades;
+        ArrayList<RegistroAtividade> atividades, atividadesProdutividade;
         ManipulacaoAtividade manipulacaoAtividade = new ManipulacaoAtividade();
 
         atividades = leArquivo(filePath);
-        atividades = manipulacaoAtividade.repassaHorasEntendimento(manipulacaoAtividade.unificaAtividades(atividades));
-        criaPlanilhaSaida(atividades);
+        atividadesProdutividade = leArquivo(filePath);
+        manipulacaoAtividade.repassaHorasEntendimento(manipulacaoAtividade.filtraAtividades(atividadesProdutividade));
 
+        for(int i = 0; i < atividadesProdutividade.size(); i++)
+            System.out.println(atividadesProdutividade.get(i).getIssueKey() + " " + atividadesProdutividade.get(i).getMesPeriodo());
+
+        criaPlanilhaSaida(atividades, atividadesProdutividade);
     }
 
     /**
@@ -46,11 +51,13 @@ public class ManipulacaoArquivo {
             HSSFWorkbook workbook = new HSSFWorkbook(file);
             HSSFSheet sheet = workbook.getSheetAt(0);
             DataFormatter objDefaultFormat = new DataFormatter();
+            SimpleDateFormat ano = new SimpleDateFormat("yyyy");
+            SimpleDateFormat mes = new SimpleDateFormat("MM");
             FormulaEvaluator objFormulaEvaluator = new HSSFFormulaEvaluator(workbook);
             Iterator<Row> rowIterator = sheet.iterator();
             Row row;
             String tRetestes, tBugs, tProducao;
-            int idPeriodo = 0, idDemanda = 0, idSistema = 0, idAnalista = 0, idHora = 0, idReteste = 0, idBugs = 0, idIssueKey = 0, idIssueType = 0, idNomeProjeto = 0;
+            int idPeriodo = 0, idDemanda = 0, idSistema = 0, idAnalista = 0, idHora = 0, idReteste = 0, idBugs = 0, idIssueKey = 0, idIssueType = 0, idNomeProjeto = 0, idStatus = 0;
 
             while (rowIterator.hasNext()) {
                 row = rowIterator.next();
@@ -66,7 +73,7 @@ public class ManipulacaoArquivo {
                         cell = cellIterator.next();
                         cell.setCellType(CellType.STRING);
                         switch(cell.getStringCellValue().toLowerCase()) {
-                            case "period":
+                            case "work date":
                                 idPeriodo = cell.getColumnIndex();
                                 break;
                             case "identificador da demanda no cliente":
@@ -96,6 +103,9 @@ public class ManipulacaoArquivo {
                             case "project name":
                                 idNomeProjeto = cell.getColumnIndex();
                                 break;
+                            case "issue status":
+                                idStatus = cell.getColumnIndex();
+                                break;
                         }
                     }
                     continue;
@@ -104,8 +114,8 @@ public class ManipulacaoArquivo {
                 RegistroAtividade registroAtividade = new RegistroAtividade();
 
                 // Pega dados das colunas da linha atual.
-                registroAtividade.setMesPeriodo(row.getCell(idPeriodo).getStringCellValue().substring(0,2));
-                registroAtividade.setAnoPeriodo(row.getCell(idPeriodo).getStringCellValue().substring(2, 4));
+                registroAtividade.setMesPeriodo(mes.format(row.getCell(idPeriodo).getDateCellValue()));
+                registroAtividade.setAnoPeriodo(ano.format(row.getCell(idPeriodo).getDateCellValue()));
                 registroAtividade.setDemanda(row.getCell(idDemanda).getStringCellValue());
                 registroAtividade.setSistema(row.getCell(idSistema).getStringCellValue());
                 registroAtividade.setAtividade(identificaTipoAtividade(row, idIssueType));
@@ -126,6 +136,7 @@ public class ManipulacaoArquivo {
 
                 registroAtividade.setIssueKey(row.getCell(idIssueKey).getStringCellValue());
                 registroAtividade.setNomeProjeto(row.getCell(idNomeProjeto).getStringCellValue());
+                registroAtividade.setFechada(row.getCell(idStatus).getStringCellValue());
 
                 atividadesLidas.add(registroAtividade);
             }
@@ -140,53 +151,34 @@ public class ManipulacaoArquivo {
         return atividadesLidas;
     }
 
+//    private void criaPlanilhaSaida(ArrayList<RegistroAtividade> atividades, ArrayList<RegistroAtividade> atividadesProdutividade) {
+//        System.out.println("tamanho lido 2: " + atividades.size() + " - " + atividadesProdutividade.size());
+//    }
+
     /**
      * Cria xls utilizando ArrayList de 'RegistroAtividade' como entrada.
      */
-    private void criaPlanilhaSaida(ArrayList<RegistroAtividade> atividades) {
+    private void criaPlanilhaSaida(ArrayList<RegistroAtividade> atividades, ArrayList<RegistroAtividade> atividadesProdutividade) {
         HSSFWorkbook workbook = new HSSFWorkbook();
-        HSSFSheet firstSheet = workbook.createSheet("Aba1");
+        HSSFSheet primeiraAba = workbook.createSheet("Ocupação");
+        HSSFSheet segundaAba = workbook.createSheet("Produtividade");
         FileSystemView system = FileSystemView.getFileSystemView();
-        String nomeProjeto, periodo;
+        String nomeProjeto, periodo1, periodo2;
 
         FileOutputStream fos = null;
 
         try {
             nomeProjeto = atividades.get(0).getNomeProjeto();
-            periodo = atividades.get(0).getMesPeriodo() + atividades.get(0).getAnoPeriodo();
+            periodo1 = atividades.get(0).getMesPeriodo() + atividades.get(0).getAnoPeriodo();
+            periodo2 = atividades.get(atividades.size() - 1).getMesPeriodo() + atividades.get(atividades.size() - 1).getAnoPeriodo();
 
             // Salva arquivo no desktop.
-            fos = new FileOutputStream(new File(system.getHomeDirectory().getPath() + File.separator + "Metricas-" + nomeProjeto + "-" + periodo + ".xls"));
+            fos = new FileOutputStream(new File(system.getHomeDirectory().getPath() + File.separator + "Metricas-" + nomeProjeto + "-" + periodo2 + "-" + periodo1 + ".xls"));
 
-            // Definição da linha de cabeçalho.
-            HSSFRow primeiraLinha = firstSheet.createRow(0);
-            primeiraLinha.createCell(0).setCellValue("Período (mm/aaaa)");
-            primeiraLinha.createCell(1).setCellValue("Demanda");
-            primeiraLinha.createCell(2).setCellValue("Sistema");
-            primeiraLinha.createCell(3).setCellValue("Atividade");
-            primeiraLinha.createCell(4).setCellValue("Analista");
-            primeiraLinha.createCell(5).setCellValue("Horas");
-            primeiraLinha.createCell(6).setCellValue("Nº de Retestes");
-            primeiraLinha.createCell(7).setCellValue("Nº de Bugs");
-            primeiraLinha.createCell(8).setCellValue("Produção Realizada");
-            primeiraLinha.createCell(9).setCellValue("Issue");
-
-            // Linhas de conteúdo.
-            for (int i = 1; i <= atividades.size(); i++) {
-                HSSFRow linha = firstSheet.createRow(i);
-
-                linha.createCell(0).setCellValue(atividades.get(i-1).getMesPeriodo() + "/20" + atividades.get(i-1).getAnoPeriodo());
-                linha.createCell(1).setCellValue(atividades.get(i-1).getDemanda());
-                linha.createCell(2).setCellValue(atividades.get(i-1).getSistema());
-                linha.createCell(3).setCellValue(atividades.get(i-1).getAtividade().getNomeAtividade());
-                linha.createCell(4).setCellValue(atividades.get(i-1).getAnalista());
-                linha.createCell(5).setCellValue(atividades.get(i-1).getHoras());
-                linha.createCell(6).setCellValue(atividades.get(i-1).getNumReteste());
-                linha.createCell(7).setCellValue(atividades.get(i-1).getNumBugs());
-                linha.createCell(8).setCellValue(atividades.get(i-1).getProducaoRealizada());
-                linha.createCell(9).setCellValue(atividades.get(i-1).getIssueKey());
-
-            }
+            System.out.println("tamanho de Atividades: " + atividades.size() + " - tamanho produtividade: " + atividadesProdutividade.size());
+            // Definição da linha de cabeçalho e conteúdo das abas.
+            preencheLinhas(criaCabecalho(primeiraAba), atividades);
+            preencheLinhas(criaCabecalho(segundaAba), atividadesProdutividade);
 
             workbook.write(fos);
 
@@ -203,6 +195,45 @@ public class ManipulacaoArquivo {
                 e.printStackTrace();
             }
         }
+    }
+
+    private HSSFSheet criaCabecalho(HSSFSheet aba) {
+        HSSFRow primeiraLinha = aba.createRow(0);
+
+        primeiraLinha.createCell(0).setCellValue("Período (mm/aaaa)");
+        primeiraLinha.createCell(1).setCellValue("Demanda");
+        primeiraLinha.createCell(2).setCellValue("Sistema");
+        primeiraLinha.createCell(3).setCellValue("Atividade");
+        primeiraLinha.createCell(4).setCellValue("Analista");
+        primeiraLinha.createCell(5).setCellValue("Horas");
+        primeiraLinha.createCell(6).setCellValue("Nº de Retestes");
+        primeiraLinha.createCell(7).setCellValue("Nº de Bugs");
+        primeiraLinha.createCell(8).setCellValue("Produção Realizada");
+        primeiraLinha.createCell(9).setCellValue("Issue");
+
+        return aba;
+    }
+
+    private HSSFSheet preencheLinhas(HSSFSheet aba, ArrayList<RegistroAtividade> listaAtividades) {
+
+        // Linhas de conteúdo.
+        for (int i = 1; i <= listaAtividades.size(); i++) {
+            HSSFRow linha = aba.createRow(i);
+
+            linha.createCell(0).setCellValue(listaAtividades.get(i-1).getMesPeriodo() + "/" + listaAtividades.get(i-1).getAnoPeriodo());
+            linha.createCell(1).setCellValue(listaAtividades.get(i-1).getDemanda());
+            linha.createCell(2).setCellValue(listaAtividades.get(i-1).getSistema());
+            linha.createCell(3).setCellValue(listaAtividades.get(i-1).getAtividade().getNomeAtividade());
+            linha.createCell(4).setCellValue(listaAtividades.get(i-1).getAnalista());
+            linha.createCell(5).setCellValue(listaAtividades.get(i-1).getHoras());
+            linha.createCell(6).setCellValue(listaAtividades.get(i-1).getNumReteste());
+            linha.createCell(7).setCellValue(listaAtividades.get(i-1).getNumBugs());
+            linha.createCell(8).setCellValue(listaAtividades.get(i-1).getProducaoRealizada());
+            linha.createCell(9).setCellValue(listaAtividades.get(i-1).getIssueKey());
+
+        }
+
+        return aba;
     }
 
     /**
