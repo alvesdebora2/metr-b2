@@ -85,6 +85,9 @@ public class ManipulacaoArquivo {
                             case "full name":
                                 idAnalista = cell.getColumnIndex();
                                 break;
+                            /*case "assignee":
+                                idAnalista = cell.getColumnIndex();
+                                break;*/
                             case "hours":
                                 idHora = cell.getColumnIndex();
                                 break;
