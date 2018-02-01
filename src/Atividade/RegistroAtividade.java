@@ -7,7 +7,8 @@ import java.text.DecimalFormat;
  */
 public class RegistroAtividade {
     private Atividade atividade;
-    private String issueKey, mesPeriodo, anoPeriodo, demanda, sistema, analista, nomeProjeto;
+    private Analista analista;
+    private String issueKey, mesPeriodo, anoPeriodo, demanda, sistema, assignee, nomeProjeto;
     private double horas;
     private int numReteste, numBugs, producaoRealizada;
     private boolean fechada;
@@ -83,11 +84,12 @@ public class RegistroAtividade {
     }
 
     public String getAnalista() {
-        return analista;
+        return analista.getNome();
     }
 
-    public void setAnalista(String analista) {
-        this.analista = analista;
+    public void setAnalista(String nomeAnalista) {
+        analista = new Analista();
+        analista.setNome(nomeAnalista);
     }
 
     public int getNumReteste() {
@@ -128,6 +130,14 @@ public class RegistroAtividade {
 
     public void setFechada(String status) {
         this.fechada = status.toLowerCase().equals("closed");
+    }
+
+    public String getAssignee() {
+        return assignee;
+    }
+
+    public void setAssignee(String assignee) {
+        this.assignee = assignee;
     }
 }
 

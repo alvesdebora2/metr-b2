@@ -73,7 +73,7 @@ public class ManipulacaoAtividade {
             }
         }
 
-        imprimeLista(atividades);
+        //imprimeLista(atividades);
     }
 
     /**
@@ -146,10 +146,10 @@ public class ManipulacaoAtividade {
     /*
      * Método para teste da lista.
      **/
-    private void imprimeLista(ArrayList<RegistroAtividade> atividades) {
-        for(int i = 0; i < atividades.size(); i++)
-            System.out.println(atividades.get(i).getIssueKey());
+    //private void imprimeLista(ArrayList<RegistroAtividade> atividades) {
+        //for(int i = 0; i < atividades.size(); i++)
+            //System.out.println(atividades.get(i).getIssueKey());
 
         // + " " + atividades.get(i).getHoras() + " " + atividades.get(i).getSistema() + " " + atividades.get(i).getAnalista()
-    }
+    //}
 }
